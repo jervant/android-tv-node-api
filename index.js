@@ -14,5 +14,7 @@ const sdk = new Sdk(config);
 
     const port = config.get().server.port;
 
+    await sdk.isOnline();
+
     await server.start(sdk, port);
 })();

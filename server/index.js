@@ -14,5 +14,8 @@ module.exports.start = (sdk, port = 8080) => {
             port
         });
     });
+
+    server.on('error', () => {
+    });
 };
 

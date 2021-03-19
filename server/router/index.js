@@ -2,6 +2,8 @@ const debug = require('debug')('server:router');
 
 const url = require('url');
 
+const errors = require('../../errors');
+
 const response = (res, data = {}) => {
 
     if(typeof data === 'object'){
@@ -36,27 +38,31 @@ module.exports = (sdk) => {
                         result = await sdk.togglePower(data);
                         break;
                     default:
-                        result = await sdk[action](data);
+                        try{
+                            result = await sdk[action](data);
+                        }catch (e){
+                            throw new errors.BadRequestError('Action not supported', [e.message]);
+                        }
                 }
 
                 response(res, result);
-                return;
+            }else{
+                throw new errors.BadRequestError('No action specified');
+            }
+        }catch (e){
+            console.error(e);
+
+            res.writeHead(e.statusCode, { 'Content-Type': 'application/json' });
+
+            const data = {
+                ...e
             }
 
-            res.writeHead(400, { 'Content-Type': 'application/json' });
+            if(process.env.DEBUG){
+                data.stack = e.stack;
+            }
 
-            response(res, {
-                error: 'No action specified'
-            });
-        }catch (e){
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-
-            response(res, {
-                error: 'Server Error',
-                message: e.message
-            });
-
-            console.error(e);
+            res.end(JSON.stringify(data));
         }
     };
 };

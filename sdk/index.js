@@ -3,6 +3,9 @@ const debug = require('debug')('sdk');
 const needle   = require('needle');
 const crypto   = require('crypto');
 const readline = require('readline');
+const exec     = require('child_process').exec;
+
+const errors = require('../errors');
 
 class Sdk {
 
@@ -153,8 +156,10 @@ class Sdk {
         this.isPairing = false;
 
         if (!this.host) {
-            throw new Error('Please set your TV\'s IP-address in the tv section in config.json');
+            throw new errors.ConfigError('Missing TV\'s IP address in the tv section of the config.json file');
         }
+
+        await this.isOnline();
 
         if (!this.isPaired()) {
 
@@ -230,7 +235,7 @@ class Sdk {
             }
         }
 
-        throw new Error('Can\t find system info, please check that you entered the correct IP address in the config.json file');
+        throw new errors.ServiceError('Can\t find system info, please check that you entered the correct IP address in the config.json file');
     }
 
     /**
@@ -314,11 +319,11 @@ class Sdk {
         const response = await this.post('pair/request', data);
 
         if (!response) {
-            throw new Error('Can\'t reach API');
+            throw new errors.ServiceError('Can\'t reach API');
         }
 
         if (response.error_id !== 'SUCCESS' && response.error_id !== 'CONCURRENT_PAIRING') {
-            throw new Error(`Pair request error: ${response.error_id}`);
+            throw new errors.ServiceError(`Can\'t pair TV`, [response.error_id]);
         }
 
         this.password = response.auth_key;
@@ -394,7 +399,7 @@ class Sdk {
             requestOptions.auth     = 'digest';
 
         } else if (!this.isPairing) {
-            throw new Error('Not Paired');
+            throw new errors.ServiceError('Not Paired');
         }
 
         const response = await this.request(method.toUpperCase(), `${this.baseUrl}/${path}`, data, requestOptions);
@@ -446,6 +451,21 @@ class Sdk {
 
             return false;
         }
+    }
+
+    async isOnline () {
+        return new Promise((resolve, reject) => {
+            const param = process.platform === "win32" ? '-n' : '-c';
+
+            exec(`ping ${param} 1 ${this.host}`, (err) => {
+
+                if (err) {
+                    return reject(new errors.OfflineError([err]));
+                }
+
+                resolve();
+            });
+        });
     }
 
     /**
@@ -555,7 +575,7 @@ class Sdk {
                 await this.turnOff();
                 break;
             default:
-                throw new Error(`Unsupported power action: ${action}`);
+                throw new errors.BadRequestError('Unsupported action', [`No action ${action}`]);
         }
     }
 
@@ -583,8 +603,7 @@ class Sdk {
         const application = applications[app.toLowerCase()];
 
         if (!application) {
-            debug('Unknown app: ', app);
-            throw new Error('Unknown app');
+            throw new errors.BadRequestError('Unknown app', [`${app} not found`]);
         }
 
         await this.post('activities/launch', application);
