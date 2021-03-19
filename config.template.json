@@ -1,0 +1,12 @@
+{
+    "server": {
+        "port": 8080
+    },
+    "http": {
+        "timeout": 5000,
+        "retries": 3
+    },
+    "tv": {
+        "host": "android:tv:ip:address"
+    }
+}

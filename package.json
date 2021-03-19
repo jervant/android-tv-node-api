@@ -1,0 +1,16 @@
+{
+  "name": "androidtv-jointspace-api-server",
+  "version": "1.0.0",
+  "description": "Node.js server to control Philips TVs (2015+) through their reverse-engineered API.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jervant Malakjan",
+  "license": "MIT",
+  "dependencies": {
+    "debug": "^4.3.1",
+    "needle": "^2.6.0"
+  }
+}
